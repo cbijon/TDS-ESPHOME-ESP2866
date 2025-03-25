@@ -1,0 +1,117 @@
+esphome:
+  name: aquarium-ec-temp-001
+  friendly_name: aquarium-ec-temp-001
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+
+ota:
+  - platform: esphome
+    password: "XXXXXXXX"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Aquarium-Ec-Temp-001"
+    password: "XXXXXXXXXXXXXXXXXXX"
+
+web_server:
+  port: 80
+  version: 2
+  include_internal: true
+  auth:
+    username: admin
+    password: XXXXXXXXXXXXXXXX
+
+# Sync time with Home Assistant.
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+
+# OneWire pour DS18B20
+one_wire:
+  - platform: gpio
+    pin: 
+      number: GPIO2
+      mode:
+        input: true
+        pullup: true
+    id: bus1
+
+sensor:
+  # Température (DS18B20)
+  - platform: dallas_temp
+    address: 0x000000000000
+    name: "Température Eau"
+    id: water_temp
+    unit_of_measurement: "°C"
+    icon: "mdi:thermometer"
+    device_class: "temperature"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    update_interval: 30s
+
+    # Reports the WiFi signal strength
+  - platform: wifi_signal
+    name: Signal
+    update_interval: 60s
+  # Reports how long the device has been powered (in minutes)
+  - platform: uptime
+    name: Uptime
+    filters:
+      - lambda: return x / 60.0;
+    unit_of_measurement: minutes
+
+  - platform: adc
+    pin: A0
+    name: "TDS Raw Value"
+    id: tds_raw
+    update_interval: 5s
+    filters:
+      - median:
+          window_size: 5
+          send_every: 1
+          send_first_at: 1
+
+  - platform: template
+    name: "TDS (ppm)"
+    unit_of_measurement: "ppm"
+    update_interval: 5s
+    lambda: |-
+      if (isnan(id(water_temp).state)) return NAN;  // sécurité
+      float voltage = id(tds_raw).state * 3.3;
+      float compensation_coefficient = 1.0 + 0.02 * (id(water_temp).state - 25.0);
+      float compensated_voltage = voltage / compensation_coefficient;
+      float tds_value = (133.42 * compensated_voltage * compensated_voltage * compensated_voltage
+                        - 255.86 * compensated_voltage * compensated_voltage
+                        + 857.39 * compensated_voltage) * 0.5;
+      return tds_value;
+
+text_sensor:
+  - platform: version
+    name: ESPHome Version
+  - platform: wifi_info
+    ip_address:
+      name: IP Address
+    ssid:
+      name: Connected SSID
+    bssid:
+      name: Connected BSSID
+    mac_address:
+      name: Mac Wifi Address
+    scan_results:
+      name: Latest Scan Results
+
+captive_portal:
+    
