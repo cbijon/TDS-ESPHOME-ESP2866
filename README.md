@@ -72,9 +72,11 @@ float tds = (133.42 * pow(compensated_voltage, 3)
 
 ---
 
-## 📷 Aperçu du Dashboard (optionnel)
+## 📷 Aperçu du Montage et de Homeassistant 
 
-*Ajoutez ici une capture d'écran de votre interface Home Assistant avec les données TDS & Température.*
+![Montage](./finish.jpg)
+
+![Homeassistant](./homeassistant.png)
 
 ---
 
